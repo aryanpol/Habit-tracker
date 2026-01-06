@@ -1,0 +1,457 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ProductiveFlow | Habit & Life Tracker</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    
+    <style>
+        :root {
+            --primary: #6c5ce7;
+            --secondary: #a29bfe;
+            --bg: #f4f7f6;
+            --sidebar: #ffffff;
+            --text: #2d3436;
+            --text-light: #636e72;
+            --success: #00b894;
+            --card-shadow: 0 4px 6px rgba(0,0,0,0.05);
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', sans-serif; }
+
+        body {
+            background-color: var(--bg);
+            color: var(--text);
+            display: flex;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        /* Sidebar */
+        .sidebar {
+            width: 250px;
+            background: var(--sidebar);
+            padding: 2rem;
+            display: flex;
+            flex-direction: column;
+            box-shadow: 2px 0 10px rgba(0,0,0,0.05);
+        }
+
+        .logo { font-size: 1.5rem; font-weight: bold; color: var(--primary); margin-bottom: 3rem; }
+        .logo i { margin-right: 10px; }
+
+        .nav-btn {
+            background: none;
+            border: none;
+            text-align: left;
+            padding: 1rem;
+            font-size: 1rem;
+            color: var(--text-light);
+            cursor: pointer;
+            border-radius: 10px;
+            transition: 0.3s;
+            margin-bottom: 0.5rem;
+        }
+
+        .nav-btn:hover, .nav-btn.active {
+            background-color: var(--primary);
+            color: white;
+        }
+
+        .nav-btn i { width: 25px; }
+
+        /* Main Content */
+        .main-content {
+            flex: 1;
+            padding: 2rem;
+            overflow-y: auto;
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2rem;
+        }
+
+        .date-display { font-size: 1.2rem; color: var(--text-light); }
+
+        /* Sections */
+        .section { display: none; animation: fadeIn 0.3s ease; }
+        .section.active { display: block; }
+
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+        /* Habits Styles */
+        .add-habit-box {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 2rem;
+        }
+
+        input[type="text"] {
+            flex: 1;
+            padding: 12px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            outline: none;
+        }
+
+        .btn-primary {
+            background: var(--primary);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+        }
+
+        .habit-list { list-style: none; }
+
+        .habit-item {
+            background: white;
+            padding: 1rem;
+            margin-bottom: 10px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            box-shadow: var(--card-shadow);
+            transition: 0.2s;
+        }
+
+        .habit-item:hover { transform: translateX(5px); }
+
+        .habit-left { display: flex; align-items: center; gap: 15px; }
+        
+        .checkbox {
+            width: 24px;
+            height: 24px;
+            border: 2px solid var(--primary);
+            border-radius: 6px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+        }
+
+        .checkbox.checked { background: var(--success); border-color: var(--success); }
+
+        /* Notes Styles */
+        .notes-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+            gap: 20px;
+        }
+
+        .note-card {
+            background: #fff7cd; /* Post-it yellow */
+            padding: 1.5rem;
+            border-radius: 4px;
+            box-shadow: var(--card-shadow);
+            position: relative;
+            min-height: 200px;
+        }
+        
+        .note-card textarea {
+            width: 100%;
+            height: 100%;
+            background: transparent;
+            border: none;
+            resize: none;
+            outline: none;
+            font-family: 'Courier New', Courier, monospace;
+        }
+
+        .delete-btn {
+            background: #ff7675;
+            color: white;
+            border: none;
+            padding: 5px 10px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.8rem;
+        }
+
+        /* Analytics */
+        .chart-container {
+            background: white;
+            padding: 2rem;
+            border-radius: 15px;
+            box-shadow: var(--card-shadow);
+            height: 400px;
+        }
+
+        /* Data Controls */
+        .data-controls {
+            margin-top: auto;
+            padding-top: 2rem;
+            border-top: 1px solid #eee;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="sidebar">
+        <div class="logo"><i class="fas fa-check-double"></i> ProductiveFlow</div>
+        <button class="nav-btn active" onclick="showSection('habits')"><i class="fas fa-list"></i> Habits</button>
+        <button class="nav-btn" onclick="showSection('notes')"><i class="fas fa-sticky-note"></i> Sticky Notes</button>
+        <button class="nav-btn" onclick="showSection('analytics')"><i class="fas fa-chart-line"></i> Growth & Graph</button>
+        
+        <div class="data-controls">
+            <p style="font-size: 0.8rem; color: #aaa; margin-bottom: 10px;">DATA MANAGEMENT</p>
+            <button class="nav-btn" onclick="downloadData()"><i class="fas fa-download"></i> Save to Computer</button>
+        </div>
+    </div>
+
+    <div class="main-content">
+        <div class="header">
+            <h1 id="page-title">Daily Habits</h1>
+            <div class="date-display" id="current-date">Loading...</div>
+        </div>
+
+        <div id="habits" class="section active">
+            <div class="add-habit-box">
+                <input type="text" id="habitInput" placeholder="Enter a new habit (e.g., Read 30 mins)...">
+                <button class="btn-primary" onclick="addHabit()">+ Add Habit</button>
+            </div>
+            <ul class="habit-list" id="habitList">
+                </ul>
+        </div>
+
+        <div id="notes" class="section">
+            <button class="btn-primary" style="margin-bottom: 20px;" onclick="addNote()">+ New Note</button>
+            <div class="notes-grid" id="notesGrid">
+                </div>
+        </div>
+
+        <div id="analytics" class="section">
+            <div class="chart-container">
+                <canvas id="growthChart"></canvas>
+            </div>
+            <div style="margin-top: 20px; background: white; padding: 20px; border-radius: 10px;">
+                <h3>History Log</h3>
+                <ul id="historyLog" style="list-style: none; margin-top: 10px; color: var(--text-light);"></ul>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // --- 1. State Management & Database Structure ---
+        const DB_KEY = 'habitTrackerDB';
+        
+        let appData = {
+            habits: [], // { id, text, completed }
+            notes: [],  // { id, text, color }
+            history: [], // { date, completionRate }
+            lastLoginDate: new Date().toLocaleDateString()
+        };
+
+        // --- 2. Initialization & Time Logic ---
+        function init() {
+            // Load from LocalStorage
+            const stored = localStorage.getItem(DB_KEY);
+            if (stored) {
+                appData = JSON.parse(stored);
+            }
+
+            // Date Logic
+            const today = new Date().toLocaleDateString();
+            document.getElementById('current-date').innerText = today;
+
+            // Check if 24 hours (new day) has passed
+            if (appData.lastLoginDate !== today) {
+                runDailyReset(appData.lastLoginDate);
+                appData.lastLoginDate = today;
+                saveData();
+            }
+
+            renderHabits();
+            renderNotes();
+            renderChart();
+            renderHistoryLog();
+        }
+
+        // --- 3. The "Backend" Logic (24h Reset) ---
+        function runDailyReset(lastDate) {
+            // 1. Calculate completion percentage for yesterday
+            const total = appData.habits.length;
+            const completed = appData.habits.filter(h => h.completed).length;
+            const percentage = total === 0 ? 0 : Math.round((completed / total) * 100);
+
+            // 2. Store in History (Folder/DB Concept)
+            appData.history.push({
+                date: lastDate,
+                rate: percentage
+            });
+
+            // 3. Reset ticks for the new day
+            appData.habits.forEach(h => h.completed = false);
+            
+            alert(`New Day Detected! Saved record for ${lastDate}. Productivity: ${percentage}%`);
+        }
+
+        function saveData() {
+            localStorage.setItem(DB_KEY, JSON.stringify(appData));
+            renderChart(); // Update chart on save
+        }
+
+        // --- 4. Navigation ---
+        function showSection(id) {
+            document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+            document.getElementById(id).classList.add('active');
+            
+            document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+            event.currentTarget.classList.add('active'); // Quick hack for button state
+            
+            const titles = { 'habits': 'Daily Habits', 'notes': 'Sticky Notes', 'analytics': 'Productivity Growth' };
+            document.getElementById('page-title').innerText = titles[id];
+            
+            if(id === 'analytics') renderChart();
+        }
+
+        // --- 5. Habit Logic ---
+        function addHabit() {
+            const input = document.getElementById('habitInput');
+            if (!input.value.trim()) return;
+
+            appData.habits.push({
+                id: Date.now(),
+                text: input.value,
+                completed: false
+            });
+            input.value = '';
+            saveData();
+            renderHabits();
+        }
+
+        function toggleHabit(id) {
+            const habit = appData.habits.find(h => h.id === id);
+            if (habit) {
+                habit.completed = !habit.completed;
+                saveData();
+                renderHabits();
+            }
+        }
+
+        function deleteHabit(id) {
+            appData.habits = appData.habits.filter(h => h.id !== id);
+            saveData();
+            renderHabits();
+        }
+
+        function renderHabits() {
+            const list = document.getElementById('habitList');
+            list.innerHTML = '';
+            appData.habits.forEach(h => {
+                list.innerHTML += `
+                    <li class="habit-item">
+                        <div class="habit-left">
+                            <div class="checkbox ${h.completed ? 'checked' : ''}" onclick="toggleHabit(${h.id})">
+                                <i class="fas fa-check"></i>
+                            </div>
+                            <span style="text-decoration: ${h.completed ? 'line-through' : 'none'}; color: ${h.completed ? '#ccc' : 'inherit'}">${h.text}</span>
+                        </div>
+                        <button class="delete-btn" onclick="deleteHabit(${h.id})"><i class="fas fa-trash"></i></button>
+                    </li>
+                `;
+            });
+        }
+
+        // --- 6. Notes Logic ---
+        function addNote() {
+            appData.notes.push({ id: Date.now(), text: '' });
+            saveData();
+            renderNotes();
+        }
+
+        function updateNote(id, value) {
+            const note = appData.notes.find(n => n.id === id);
+            if(note) note.text = value;
+            saveData();
+        }
+
+        function deleteNote(id) {
+            appData.notes = appData.notes.filter(n => n.id !== id);
+            saveData();
+            renderNotes();
+        }
+
+        function renderNotes() {
+            const grid = document.getElementById('notesGrid');
+            grid.innerHTML = '';
+            appData.notes.forEach(n => {
+                grid.innerHTML += `
+                    <div class="note-card">
+                        <textarea placeholder="Write here..." oninput="updateNote(${n.id}, this.value)">${n.text}</textarea>
+                        <button class="delete-btn" style="position:absolute; bottom:10px; right:10px;" onclick="deleteNote(${n.id})">Del</button>
+                    </div>
+                `;
+            });
+        }
+
+        // --- 7. Analytics & Visuals (Chart.js) ---
+        let myChart;
+
+        function renderChart() {
+            const ctx = document.getElementById('growthChart').getContext('2d');
+            
+            // Prepare Data
+            const labels = appData.history.map(h => h.date);
+            const dataPoints = appData.history.map(h => h.rate);
+
+            if (myChart) myChart.destroy();
+
+            myChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Productivity %',
+                        data: dataPoints,
+                        borderColor: '#6c5ce7',
+                        backgroundColor: 'rgba(108, 92, 231, 0.2)',
+                        fill: true,
+                        tension: 0.4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: { beginAtZero: true, max: 100 }
+                    }
+                }
+            });
+            renderHistoryLog();
+        }
+
+        function renderHistoryLog() {
+            const log = document.getElementById('historyLog');
+            if(appData.history.length === 0) {
+                log.innerHTML = "<li>No history recorded yet. Wait for tomorrow!</li>";
+                return;
+            }
+            log.innerHTML = appData.history.map(h => `<li>📅 ${h.date}: ${h.rate}% Completed</li>`).join('');
+        }
+
+        // --- 8. Notepad/File System Simulation ---
+        function downloadData() {
+            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(appData, null, 2));
+            const downloadAnchorNode = document.createElement('a');
+            downloadAnchorNode.setAttribute("href", dataStr);
+            downloadAnchorNode.setAttribute("download", "HabitTracker_Backup_" + new Date().toLocaleDateString() + ".json");
+            document.body.appendChild(downloadAnchorNode);
+            downloadAnchorNode.click();
+            downloadAnchorNode.remove();
+        }
+
+        // Start App
+        init();
+    </script>
+</body>
+</html>
